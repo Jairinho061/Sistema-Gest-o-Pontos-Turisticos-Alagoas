@@ -1,41 +1,55 @@
 import psycopg2
+from psycopg2 import sql
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+DB_HOST = os.getenv("DB_HOST")
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_PORT = os.getenv("DB_PORT")
 
 def criar_banco_se_nao_existir():
     try:
         conn = psycopg2.connect(
-            host="localhost",
+            host=DB_HOST,
             database="postgres",
-            user="postgres",
-            password="admin",
-            port="5432"
+            user=DB_USER,
+            password=DB_PASSWORD,
+            port=DB_PORT
         )
         conn.autocommit = True
         cur = conn.cursor()
 
-        cur.execute("SELECT 1 FROM pg_database WHERE datname = 'sistema_turismo_alagoas';")
+        cur.execute(sql.SQL("SELECT 1 FROM pg_database WHERE datname = %s;"), [DB_NAME])
         existe = cur.fetchone()
 
         if not existe:
-            cur.execute("CREATE DATABASE sistema_turismo_alagoas;")
-            print("Banco de dados 'sistema_turismo_alagoas' criado com sucesso!")
+            cur.execute(sql.SQL("CREATE DATABASE {};").format(sql.Identifier(DB_NAME)))
+            print(f"Banco de dados '{DB_NAME}' criado com sucesso!")
         else:
-            print("ℹBanco de dados já existe.")
-
-        cur.close()
-        conn.close()
+            print(f"O banco de dados '{DB_NAME}' já existe.")
 
     except psycopg2.Error as e:
         print("Erro ao verificar/criar o banco:", e)
+
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
 
 
 def get_connection():
     try:
         connection = psycopg2.connect(
-            host="localhost",
-            database="sistema_turismo_alagoas",
-            user="postgres",
-            password="admin",
-            port="5432"
+            host=DB_HOST,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            port=DB_PORT
         )
         return connection
     except psycopg2.Error as e:
@@ -47,7 +61,7 @@ def testar_conexao():
     criar_banco_se_nao_existir()
     conn = get_connection()
     if conn:
-        print("Conexão com o banco de dados bem-sucedida!")
+        print(f"Conexão com o banco '{DB_NAME}' bem-sucedida!")
         conn.close()
     else:
         print("Falha na conexão com o banco de dados.")
